@@ -1,0 +1,77 @@
+{
+  "name": "mockeleon-api",
+  "version": "1.0.0",
+  "description": "This project provides mock data for testing and development purposes.",
+  "type": "module",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=24.3.0",
+    "npm": ">=11.6.4"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:ci": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "keywords": [
+    "mockeleon",
+    "testing",
+    "development",
+    "data",
+    "mock",
+    "generator",
+    "fake-data",
+    "api",
+    "rest-api",
+    "typescript"
+  ],
+  "author": "Mockeleon Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mockeleon/api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Mockeleon/api/issues"
+  },
+  "homepage": "https://mockeleon.com",
+  "dependencies": {
+    "@hono/node-server": "^1.19.6",
+    "@hono/swagger-ui": "^0.5.2",
+    "@hono/zod-openapi": "^1.1.5",
+    "dotenv": "^17.2.3",
+    "hono": "^4.10.7",
+    "pg": "^8.16.3",
+    "prom-client": "^15.1.3",
+    "winston": "^3.18.3",
+    "winston-daily-rotate-file": "^5.0.0",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.15.6",
+    "@typescript-eslint/eslint-plugin": "^8.48.1",
+    "@typescript-eslint/parser": "^8.48.1",
+    "@vitest/coverage-v8": "^4.0.15",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "prettier": "^3.7.4",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
+  }
+}
