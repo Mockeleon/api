@@ -99,7 +99,10 @@ export function createApp(): OpenAPIHono {
     },
     servers: [
       {
-        url: config.api.domain,
+        url:
+          config.server.env === 'production'
+            ? `${config.api.domain}/api`
+            : config.api.domain,
         description:
           config.server.env === 'production'
             ? 'Production server'
