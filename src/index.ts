@@ -89,6 +89,8 @@ export function createApp(): OpenAPIHono {
   app.use('*', requestLogger);
 
   // OpenAPI documentation configuration
+  // Note: In production, Nginx already adds /api prefix before forwarding
+  // So the server URL should just be the domain without /api
   app.doc('/openapi.json', {
     openapi: '3.1.0',
     info: {
@@ -99,10 +101,7 @@ export function createApp(): OpenAPIHono {
     },
     servers: [
       {
-        url:
-          config.server.env === 'production'
-            ? `${config.api.domain}/api`
-            : config.api.domain,
+        url: config.api.domain,
         description:
           config.server.env === 'production'
             ? 'Production server'
@@ -124,7 +123,10 @@ export function createApp(): OpenAPIHono {
   app.get(
     '/docs',
     swaggerUI({
-      url: '/openapi.json',
+      url:
+        config.server.env === 'production'
+          ? '/api/openapi.json'
+          : '/openapi.json',
     })
   );
 
