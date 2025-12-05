@@ -1,14 +1,23 @@
 name: Deploy to Production
 
 on:
+  push:
+    branches: ['main'] # Deploy when code is pushed or merged into main
   workflow_run:
-    workflows: ['PR Tests']
+    workflows: ['CI Tests'] # Wait for CI workflow to complete
     types:
       - completed
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    if: |
+      github.event_name == 'push' && github.ref == 'refs/heads/main' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+
+    name: Build & Deploy
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -22,7 +31,7 @@ jobs:
           node-version: '24.3.0'
           cache: 'npm'
 
-      - name: Build project
+      - name: Install dependencies and build
         run: |
           npm ci
           npm run build
@@ -36,13 +45,13 @@ jobs:
         run: |
           set -e
 
-          # Configure SSH
+          # --- Setup SSH ---
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$SERVER_HOST" >> ~/.ssh/known_hosts
 
-          # Sync build files
+          # --- Sync build files ---
           rsync -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             --exclude 'node_modules' \
@@ -51,38 +60,77 @@ jobs:
             --exclude 'logs' \
             ./dist/ "$SERVER_USER@$SERVER_HOST:$API_DEPLOY_PATH/dist/"
 
-          # Sync configuration files
+          # --- Sync configs ---
           rsync -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             ecosystem.config.cjs package*.json "$SERVER_USER@$SERVER_HOST:$API_DEPLOY_PATH/"
 
-          # Restart PM2 and run health checks
+          # --- Restart PM2 and run health checks ---
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_HOST" << 'ENDSSH'
             set -e
+
+            # Explicitly load Node.js binaries for non-interactive sessions
+            export PATH="$HOME/.nvm/versions/node/v24.3.0/bin:$PATH"
+            export NVM_DIR="$HOME/.nvm"
+
             cd ${{ secrets.API_DEPLOY_PATH }}
 
-            # Install only production dependencies
             npm ci --omit=dev
 
-            # Restart PM2 processes
             pm2 delete mockeleon-api-4000 || true
             pm2 delete mockeleon-api-4001 || true
             pm2 delete mockeleon-api-4002 || true
             pm2 delete mockeleon-api-4003 || true
+
             pm2 start ecosystem.config.cjs
             pm2 save
 
-            # Verify all instances are healthy
-            for port in 4000 4001 4002 4003; do
-              if ! curl -fs http://127.0.0.1:\$port/health >/dev/null; then
-                echo "Health check failed on port \$port"
-                pm2 logs --nostream --lines=30
-                exit 1
-              else
-                echo "Port \$port healthy"
-              fi
-            done
+            # --- Verify all instances are healthy ---
+            echo "Waiting for apps to initialize..."
+            sleep 5  # small buffer after pm2 start
+
+            echo "Running health checks..."
+
+            # Wait a bit before checking
+            sleep 6
+
+            # --- Port 4000 ---
+            if ! curl -fs http://127.0.0.1:4000/health >/dev/null; then
+              echo "Health check failed on port 4000"
+              pm2 logs --nostream --lines=30
+              exit 1
+            else
+              echo "Port 4000 healthy"
+            fi
+
+            # --- Port 4001 ---
+            if ! curl -fs http://127.0.0.1:4001/health >/dev/null; then
+              echo "Health check failed on port 4001"
+              pm2 logs --nostream --lines=30
+              exit 1
+            else
+              echo "Port 4001 healthy"
+            fi
+
+            # --- Port 4002 ---
+            if ! curl -fs http://127.0.0.1:4002/health >/dev/null; then
+              echo "Health check failed on port 4002"
+              pm2 logs --nostream --lines=30
+              exit 1
+            else
+              echo "Port 4002 healthy"
+            fi
+
+            # --- Port 4003 ---
+            if ! curl -fs http://127.0.0.1:4003/health >/dev/null; then
+              echo "Health check failed on port 4003"
+              pm2 logs --nostream --lines=30
+              exit 1
+            else
+              echo "Port 4003 healthy"
+            fi
+
+            echo "All API instances are healthy"
           ENDSSH
 
-          # Cleanup
           rm -f ~/.ssh/deploy_key
