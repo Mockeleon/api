@@ -1,14 +1,26 @@
 name: Deploy to Production
 
 on:
+  push:
+    branches: ['main'] # Deploy when code is pushed or merged into main
   workflow_run:
-    workflows: ['PR Tests']
+    workflows: ['CI Tests'] # Wait for CI workflow to complete
     types:
       - completed
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    # Conditions:
+    # - Run if this is a direct push to main, OR
+    # - Run if CI Tests finished successfully on main
+    if: |
+      github.event_name == 'push' && github.ref == 'refs/heads/main' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+
+    name: Build & Deploy
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -22,7 +34,7 @@ jobs:
           node-version: '24.3.0'
           cache: 'npm'
 
-      - name: Build project
+      - name: Install dependencies and build
         run: |
           npm ci
           npm run build
@@ -36,13 +48,13 @@ jobs:
         run: |
           set -e
 
-          # Configure SSH
+          # --- Setup SSH ---
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$SERVER_HOST" >> ~/.ssh/known_hosts
 
-          # Sync build files
+          # --- Sync build files ---
           rsync -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             --exclude 'node_modules' \
@@ -51,24 +63,23 @@ jobs:
             --exclude 'logs' \
             ./dist/ "$SERVER_USER@$SERVER_HOST:$API_DEPLOY_PATH/dist/"
 
-          # Sync configuration files
+          # --- Sync configs ---
           rsync -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             ecosystem.config.cjs package*.json "$SERVER_USER@$SERVER_HOST:$API_DEPLOY_PATH/"
 
-          # Restart PM2 and run health checks
+          # --- Restart PM2 and run health checks ---
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_HOST" << 'ENDSSH'
             set -e
             cd ${{ secrets.API_DEPLOY_PATH }}
 
-            # Install only production dependencies
             npm ci --omit=dev
 
-            # Restart PM2 processes
             pm2 delete mockeleon-api-4000 || true
             pm2 delete mockeleon-api-4001 || true
             pm2 delete mockeleon-api-4002 || true
             pm2 delete mockeleon-api-4003 || true
+
             pm2 start ecosystem.config.cjs
             pm2 save
 
@@ -84,5 +95,4 @@ jobs:
             done
           ENDSSH
 
-          # Cleanup
           rm -f ~/.ssh/deploy_key

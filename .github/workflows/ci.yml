@@ -1,8 +1,10 @@
-name: PR Tests
+name: CI Tests
 
 on:
+  push:
+    branches: ['*']
   pull_request:
-    branches: ['main', 'dev']
+    branches: ['*']
 
 jobs:
   test:
