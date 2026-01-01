@@ -56,7 +56,7 @@ describe('Email Field Generation', () => {
   it('should generate email based on name field', async () => {
     const requestBody: MockRequest = {
       schema: {
-        name: { dataType: 'name', format: 'full' },
+        name: { dataType: 'name', format: 'full', lang: 'en' },
         email: { dataType: 'email', basedOn: 'name' },
       },
       count: 30,
@@ -154,5 +154,35 @@ describe('Email Field Generation', () => {
       expect(item.email).not.toMatch(/[çğıöşü]/i);
       expect(item.email).not.toMatch(/[ÇĞİÖŞÜ]/);
     });
+  });
+
+  it('should handle Chinese and Russian names for email generation', async () => {
+    const languages = ['zh', 'ru'] as const;
+
+    for (const lang of languages) {
+      const requestBody: MockRequest = {
+        schema: {
+          name: { dataType: 'name', lang, format: 'full' },
+          email: { dataType: 'email', basedOn: 'name' },
+        },
+        count: 10,
+      };
+
+      const response = await app.request('/mock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      body.forEach((item: { name: string; email: string }) => {
+        expect(typeof item.email).toBe('string');
+        expect(item.email).toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+        // Email should be ASCII-safe (no Chinese/Russian characters)
+        expect(item.email).toMatch(/^[a-z0-9._-]+@[a-z0-9.-]+\.[a-z]{2,}$/i);
+      });
+    }
   });
 });

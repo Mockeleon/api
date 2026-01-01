@@ -1,5 +1,6 @@
 import { createRoute, type OpenAPIHono } from '@hono/zod-openapi';
 
+// SchemaSchema is the global validation schema used for mock data generation
 import { SchemaSchema } from '../../schema/index.js';
 import type { MockeleonService } from '../../services/mockeleon.service.js';
 import { ErrorResponseSchema } from '../../types/api-responses.js';

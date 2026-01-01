@@ -1,4 +1,8 @@
-import type { FieldConfig, UsernameFieldConfig } from '../../schema/index.js';
+import type {
+  FieldConfig,
+  UsernameFieldConfig,
+  LanguageCode,
+} from '../../schema/index.js';
 
 import { DEFAULT_NULLABLE_RATE } from './constants.js';
 import { getUsernameWords } from './data/username/index.js';
@@ -70,7 +74,7 @@ export class UsernameGenerator implements IDataGenerator<UsernameFieldConfig> {
     return format();
   }
 
-  private generateRandom(lang?: 'en' | 'tr'): string {
+  private generateRandom(lang?: LanguageCode): string {
     const words = getUsernameWords(lang);
     const word1 = words[Math.floor(Math.random() * words.length)]!;
     const word2 = words[Math.floor(Math.random() * words.length)]!;

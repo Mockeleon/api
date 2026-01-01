@@ -2,9 +2,9 @@ import { z } from '@hono/zod-openapi';
 
 import { ArrayFieldConfigSchema } from './fields/array-field.js';
 import { BooleanFieldConfigSchema } from './fields/boolean-field.js';
-import { CityFieldSchema } from './fields/city-field.js';
+import { CityFieldConfigSchema } from './fields/city-field.js';
 import { ColorFieldSchema } from './fields/color-field.js';
-import { CountryFieldSchema } from './fields/country-field.js';
+import { CountryFieldConfigSchema } from './fields/country-field.js';
 import { CryptoAddressFieldSchema } from './fields/crypto-address-field.js';
 import { CryptoHashFieldSchema } from './fields/crypto-hash-field.js';
 import { CurrencyFieldConfigSchema } from './fields/currency-field.js';
@@ -17,7 +17,7 @@ import { HashFieldConfigSchema } from './fields/hash-field.js';
 import { IbanFieldConfigSchema } from './fields/iban-field.js';
 import { IntFieldConfigSchema } from './fields/int-field.js';
 import { IpFieldConfigSchema } from './fields/ip-field.js';
-import { LocationFieldSchema } from './fields/location-field.js';
+import { LocationFieldConfigSchema } from './fields/location-field.js';
 import { MacFieldConfigSchema } from './fields/mac-field.js';
 import { NameFieldConfigSchema } from './fields/name-field.js';
 import { ObjectFieldConfigSchema } from './fields/object-field.js';
@@ -29,7 +29,7 @@ import { StringFieldConfigSchema } from './fields/string-field.js';
 import { UrlFieldConfigSchema } from './fields/url-field.js';
 import { UsernameFieldConfigSchema } from './fields/username-field.js';
 import { UuidFieldConfigSchema } from './fields/uuid-field.js';
-import { ZipCodeFieldSchema } from './fields/zipcode-field.js';
+import { ZipCodeFieldConfigSchema } from './fields/zipcode-field.js';
 
 export { BaseFieldConfigSchema } from './base-field-config.js';
 export type { BaseFieldConfig } from './base-field-config.js';
@@ -55,10 +55,10 @@ export const FieldConfigSchema = z.discriminatedUnion('dataType', [
   PriceFieldConfigSchema,
   CurrencyFieldConfigSchema,
   IbanFieldConfigSchema,
-  CountryFieldSchema,
-  CityFieldSchema,
-  LocationFieldSchema,
-  ZipCodeFieldSchema,
+  CountryFieldConfigSchema,
+  CityFieldConfigSchema,
+  LocationFieldConfigSchema,
+  ZipCodeFieldConfigSchema,
   CryptoAddressFieldSchema,
   CryptoHashFieldSchema,
   ColorFieldSchema,
@@ -88,10 +88,10 @@ export type FieldConfig =
   | z.infer<typeof PriceFieldConfigSchema>
   | z.infer<typeof CurrencyFieldConfigSchema>
   | z.infer<typeof IbanFieldConfigSchema>
-  | z.infer<typeof CountryFieldSchema>
-  | z.infer<typeof CityFieldSchema>
-  | z.infer<typeof LocationFieldSchema>
-  | z.infer<typeof ZipCodeFieldSchema>
+  | z.infer<typeof CountryFieldConfigSchema>
+  | z.infer<typeof CityFieldConfigSchema>
+  | z.infer<typeof LocationFieldConfigSchema>
+  | z.infer<typeof ZipCodeFieldConfigSchema>
   | z.infer<typeof CryptoAddressFieldSchema>
   | z.infer<typeof CryptoHashFieldSchema>
   | z.infer<typeof ColorFieldSchema>

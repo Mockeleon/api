@@ -1,4 +1,5 @@
-import type { CityField } from '../../schema/fields/city-field.js';
+import type { CityFieldConfig } from '../../schema/fields/city-field.js';
+import type { FieldConfig } from '../../schema/index.js';
 
 import {
   cities,
@@ -6,20 +7,18 @@ import {
   getCitiesByCountryCodes,
 } from './data/location/cities.js';
 import { countryByCode } from './data/location/countries.js';
-import type { GeneratorContext, IDataGenerator } from './generator.interface.js';
+import type {
+  GeneratorContext,
+  IDataGenerator,
+} from './generator.interface.js';
 
 /** Generates city names with country and continent filtering */
-export class CityGenerator implements IDataGenerator<CityField> {
-  canHandle(field: unknown): field is CityField {
-    return (
-      typeof field === 'object' &&
-      field !== null &&
-      'dataType' in field &&
-      field.dataType === 'city'
-    );
+export class CityGenerator implements IDataGenerator<CityFieldConfig> {
+  canHandle(config: FieldConfig): config is CityFieldConfig {
+    return config.dataType === 'city';
   }
 
-  generate(field: CityField, context?: GeneratorContext): string {
+  generate(field: CityFieldConfig, context?: GeneratorContext): string {
     let filteredCities = cities;
 
     // Check if basedOn country field exists in context

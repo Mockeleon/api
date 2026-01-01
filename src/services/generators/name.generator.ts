@@ -1,22 +1,12 @@
+import type { LanguageCode } from '../../schema/data-types.js';
 import type { FieldConfig, NameFieldConfig } from '../../schema/index.js';
 
-import {
-  DEFAULT_NULLABLE_RATE,
-  GENDER_RANDOM_THRESHOLD,
-  LANGUAGE_RANDOM_THRESHOLD,
-} from './constants.js';
-import {
-  FIRST_NAMES_FEMALE_EN,
-  FIRST_NAMES_MALE_EN,
-  LAST_NAMES_EN,
-} from './data/names/en.js';
-import {
-  FIRST_NAMES_FEMALE_TR,
-  FIRST_NAMES_MALE_TR,
-  LAST_NAMES_TR,
-} from './data/names/tr.js';
-import type { GeneratorContext, IDataGenerator } from './generator.interface.js';
-
+import { DEFAULT_NULLABLE_RATE, GENDER_RANDOM_THRESHOLD } from './constants.js';
+import { getFirstNames, getLastNames } from './data/names/index.js';
+import type {
+  GeneratorContext,
+  IDataGenerator,
+} from './generator.interface.js';
 
 /** Generates person names with support for multiple languages and genders */
 export class NameGenerator implements IDataGenerator<NameFieldConfig> {
@@ -52,10 +42,11 @@ export class NameGenerator implements IDataGenerator<NameFieldConfig> {
 
   private generateFirstName(
     config: NameFieldConfig,
-    lang: 'tr' | 'en',
+    lang: LanguageCode,
     allowTriple = false
   ): string {
-    const firstNames = this.getFirstNames(lang, config.gender);
+    const isMale = this.resolveGender(config.gender);
+    const firstNames = getFirstNames(lang, isMale);
     const firstName =
       firstNames[Math.floor(Math.random() * firstNames.length)] ?? 'Name';
 
@@ -71,39 +62,32 @@ export class NameGenerator implements IDataGenerator<NameFieldConfig> {
     return firstName;
   }
 
-  private generateFullName(config: NameFieldConfig, lang: 'tr' | 'en'): string {
+  private generateFullName(
+    config: NameFieldConfig,
+    lang: LanguageCode
+  ): string {
     const firstName = this.generateFirstName(config, lang, true);
     const lastName = this.generateLastName(lang);
     return `${firstName} ${lastName}`;
   }
 
-  private generateLastName(lang: 'tr' | 'en'): string {
-    const lastNames = this.getLastNames(lang);
+  private generateLastName(lang: LanguageCode): string {
+    const lastNames = getLastNames(lang);
     return lastNames[Math.floor(Math.random() * lastNames.length)] ?? 'Surname';
   }
 
   /**
    * Resolve language once - if 'any' or undefined, pick random
    */
-  private resolveLanguage(lang?: string): 'tr' | 'en' {
+  private resolveLanguage(lang?: LanguageCode): LanguageCode {
     if (lang === 'tr') return 'tr';
     if (lang === 'en') return 'en';
+    if (lang === 'zh') return 'zh';
+    if (lang === 'ru') return 'ru';
+
     // Random language for 'any' or undefined
-    return Math.random() > LANGUAGE_RANDOM_THRESHOLD ? 'tr' : 'en';
-  }
-
-  private getFirstNames(lang: 'tr' | 'en', gender?: string): string[] {
-    const isMale = this.resolveGender(gender);
-
-    if (lang === 'tr') {
-      return isMale ? FIRST_NAMES_MALE_TR : FIRST_NAMES_FEMALE_TR;
-    }
-
-    return isMale ? FIRST_NAMES_MALE_EN : FIRST_NAMES_FEMALE_EN;
-  }
-
-  private getLastNames(lang: 'tr' | 'en'): string[] {
-    return lang === 'tr' ? LAST_NAMES_TR : LAST_NAMES_EN;
+    const languages: LanguageCode[] = ['tr', 'en', 'zh', 'ru'];
+    return languages[Math.floor(Math.random() * languages.length)]!;
   }
 
   private resolveGender(gender?: string): boolean {

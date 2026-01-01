@@ -19,4 +19,7 @@ export const HealthResponseSchema = z
     }),
   })
   .strict()
+  .openapi({
+    description: 'Health check response',
+  })
   .openapi('HealthResponse');

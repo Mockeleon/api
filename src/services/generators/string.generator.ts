@@ -1,18 +1,13 @@
 import type { FieldConfig, StringFieldConfig } from '../../schema/index.js';
 
-import {
-  DEFAULT_NULLABLE_RATE,
-  DEFAULT_PARAGRAPH_COUNT,
-  LANGUAGE_RANDOM_THRESHOLD,
-  PARAGRAPH_MAX_SENTENCES,
-  PARAGRAPH_MIN_SENTENCES,
-  SENTENCE_MAX_WORDS,
-  SENTENCE_MIN_WORDS,
-} from './constants.js';
-import { WORDS_EN } from './data/words/en.js';
-import { WORDS_TR } from './data/words/tr.js';
-import type { GeneratorContext, IDataGenerator } from './generator.interface.js';
-
+import { DEFAULT_NULLABLE_RATE, DEFAULT_PARAGRAPH_COUNT } from './constants.js';
+import { getParagraphs } from './data/paragraphs/index.js';
+import { getSentences } from './data/sentences/index.js';
+import { getWords } from './data/words/index.js';
+import type {
+  GeneratorContext,
+  IDataGenerator,
+} from './generator.interface.js';
 
 /** Generates strings - words, sentences, or paragraphs in multiple languages */
 export class StringGenerator implements IDataGenerator<StringFieldConfig> {
@@ -44,7 +39,7 @@ export class StringGenerator implements IDataGenerator<StringFieldConfig> {
   }
 
   private generateWord(config: StringFieldConfig): string {
-    const words = this.getWords(config.lang);
+    const words = getWords(config.lang);
     let result = '';
 
     // Use min/max if provided for word count
@@ -59,49 +54,28 @@ export class StringGenerator implements IDataGenerator<StringFieldConfig> {
   }
 
   private generateSentence(config: StringFieldConfig): string {
-    const words = this.getWords(config.lang);
+    const sentences = getSentences(config.lang);
 
-    // Use min/max if provided for word count in sentence
-    const wordCount = this.getCount(
-      config,
-      SENTENCE_MIN_WORDS,
-      SENTENCE_MAX_WORDS
+    // Return a random sentence from the curated list
+    return (
+      sentences[Math.floor(Math.random() * sentences.length)] ??
+      'Default sentence.'
     );
-    const sentenceWords: string[] = [];
-
-    for (let i = 0; i < wordCount; i++) {
-      sentenceWords.push(
-        words[Math.floor(Math.random() * words.length)] ?? 'word'
-      );
-    }
-
-    let sentence = sentenceWords.join(' ');
-    sentence = sentence.charAt(0).toUpperCase() + sentence.slice(1) + '.';
-
-    return sentence;
   }
 
   private generateParagraph(config: StringFieldConfig): string {
+    const paragraphs = getParagraphs(config.lang);
     const paragraphCount = config.paragraphs ?? DEFAULT_PARAGRAPH_COUNT;
-    const paragraphs: string[] = [];
+    const selectedParagraphs: string[] = [];
 
     for (let i = 0; i < paragraphCount; i++) {
-      // Use min/max if provided for sentence count in paragraph
-      const sentenceCount = this.getCount(
-        config,
-        PARAGRAPH_MIN_SENTENCES,
-        PARAGRAPH_MAX_SENTENCES
+      selectedParagraphs.push(
+        paragraphs[Math.floor(Math.random() * paragraphs.length)] ??
+          'Default paragraph.'
       );
-      const sentences: string[] = [];
-
-      for (let j = 0; j < sentenceCount; j++) {
-        sentences.push(this.generateSentence(config));
-      }
-
-      paragraphs.push(sentences.join(' '));
     }
 
-    return paragraphs.join('\n\n');
+    return selectedParagraphs.join('\n\n');
   }
 
   private getCount(
@@ -112,12 +86,6 @@ export class StringGenerator implements IDataGenerator<StringFieldConfig> {
     const min = config.min ?? defaultMin;
     const max = config.max ?? defaultMax;
     return this.randomInt(min, max);
-  }
-
-  private getWords(lang?: string): string[] {
-    if (lang === 'tr') return WORDS_TR;
-    if (lang === 'en') return WORDS_EN;
-    return Math.random() > LANGUAGE_RANDOM_THRESHOLD ? WORDS_TR : WORDS_EN;
   }
 
   private randomInt(min: number, max: number): number {

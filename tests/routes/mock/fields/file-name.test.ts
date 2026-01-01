@@ -56,7 +56,7 @@ describe('File Name Field Generation', () => {
   it('should generate file names based on another field', async () => {
     const requestBody: MockRequest = {
       schema: {
-        title: { dataType: 'string', kind: 'sentence' },
+        title: { dataType: 'string', kind: 'sentence', lang: 'en' },
         document: { dataType: 'fileName', basedOn: 'title', extension: 'docx' },
       },
       count: 10,

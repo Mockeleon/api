@@ -199,4 +199,42 @@ describe('Name Field Generation', () => {
 
     expect(nullCount).toBeGreaterThan(0);
   });
+
+  it('should support all languages (tr, en, zh, ru)', async () => {
+    const languages = ['tr', 'en', 'zh', 'ru'] as const;
+
+    for (const lang of languages) {
+      const requestBody: MockRequest = {
+        schema: {
+          fullName: { dataType: 'name', format: 'full', lang },
+          firstName: { dataType: 'name', format: 'first', lang },
+          lastName: { dataType: 'name', format: 'last', lang },
+        },
+        count: 5,
+      };
+
+      const response = await app.request('/mock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      body.forEach(
+        (item: { fullName: string; firstName: string; lastName: string }) => {
+          expect(typeof item.fullName).toBe('string');
+          expect(item.fullName.length).toBeGreaterThan(0);
+          expect(typeof item.firstName).toBe('string');
+          expect(item.firstName.length).toBeGreaterThan(0);
+          expect(typeof item.lastName).toBe('string');
+          expect(item.lastName.length).toBeGreaterThan(0);
+
+          // Each field is generated independently, so we just verify they exist and are valid
+          // Full name will be different from firstName + lastName since they're random
+        }
+      );
+    }
+  });
 });

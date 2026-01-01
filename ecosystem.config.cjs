@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'mockeleon-api-4000',
-      script: './dist/index.js',
+      script: './dist/src/index.js',
       instances: 1,
       exec_mode: 'fork',
       env: {
@@ -22,7 +22,7 @@ module.exports = {
     },
     {
       name: 'mockeleon-api-4001',
-      script: './dist/index.js',
+      script: './dist/src/index.js',
       instances: 1,
       exec_mode: 'fork',
       env: {
@@ -42,7 +42,7 @@ module.exports = {
     },
     {
       name: 'mockeleon-api-4002',
-      script: './dist/index.js',
+      script: './dist/src/index.js',
       instances: 1,
       exec_mode: 'fork',
       env: {
@@ -62,7 +62,7 @@ module.exports = {
     },
     {
       name: 'mockeleon-api-4003',
-      script: './dist/index.js',
+      script: './dist/src/index.js',
       instances: 1,
       exec_mode: 'fork',
       env: {

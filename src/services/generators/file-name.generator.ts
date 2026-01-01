@@ -1,4 +1,8 @@
-import type { FieldConfig, FileNameField } from '../../schema/index.js';
+import type {
+  FieldConfig,
+  FileNameField,
+  LanguageCode,
+} from '../../schema/index.js';
 
 import { DEFAULT_NULLABLE_RATE } from './constants.js';
 import {
@@ -77,7 +81,7 @@ export class FileNameGenerator implements IDataGenerator<FileNameField> {
     return `${baseName}.${extension}`;
   }
 
-  private generateRandomName(lang?: 'en' | 'tr'): string {
+  private generateRandomName(lang?: LanguageCode): string {
     const categories = getFileCategories(lang);
     const descriptors = getFileDescriptors(lang);
     const contexts = getFileContexts(lang);

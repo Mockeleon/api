@@ -1,8 +1,12 @@
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 
-export const ZipCodeFieldSchema = z.object({
-  dataType: z.literal('zipCode'),
-  name: z.string(),
+import { BaseFieldConfigSchema } from '../base-field-config.js';
+
+export const ZipCodeFieldConfigSchema = BaseFieldConfigSchema.extend({
+  dataType: z.literal('zipCode').openapi({
+    description: 'Field type identifier for zip codes',
+    example: 'zipCode',
+  }),
 });
 
-export type ZipCodeField = z.infer<typeof ZipCodeFieldSchema>;
+export type ZipCodeFieldConfig = z.infer<typeof ZipCodeFieldConfigSchema>;

@@ -2,8 +2,9 @@ import type { LanguageCode } from '../../../../schema/data-types.js';
 import type { ProductCategory } from '../../../../schema/fields/product-field.js';
 
 import { PRODUCTS_EN } from './en.js';
+import { PRODUCTS_RU } from './ru.js';
 import { PRODUCTS_TR } from './tr.js';
-
+import { PRODUCTS_ZH } from './zh.js';
 
 export interface Product {
   name: string;
@@ -15,7 +16,14 @@ export function getProductsByCategory(
   category: ProductCategory | ProductCategory[],
   lang?: LanguageCode
 ): string[] {
-  const products = lang === 'tr' ? PRODUCTS_TR : PRODUCTS_EN;
+  const products =
+    lang === 'tr'
+      ? PRODUCTS_TR
+      : lang === 'zh'
+        ? PRODUCTS_ZH
+        : lang === 'ru'
+          ? PRODUCTS_RU
+          : PRODUCTS_EN;
 
   if (Array.isArray(category)) {
     const result: string[] = [];
@@ -32,7 +40,14 @@ export function getRandomProduct(
   categories?: ProductCategory[],
   lang?: LanguageCode
 ): string {
-  const products = lang === 'tr' ? PRODUCTS_TR : PRODUCTS_EN;
+  const products =
+    lang === 'tr'
+      ? PRODUCTS_TR
+      : lang === 'zh'
+        ? PRODUCTS_ZH
+        : lang === 'ru'
+          ? PRODUCTS_RU
+          : PRODUCTS_EN;
 
   if (categories && categories.length > 0) {
     const availableProducts = getProductsByCategory(categories, lang);

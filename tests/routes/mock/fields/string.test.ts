@@ -9,7 +9,7 @@ describe('String Field Generation', () => {
   it('should generate string with word type', async () => {
     const requestBody: MockRequest = {
       schema: {
-        tag: { dataType: 'string', kind: 'word' },
+        tag: { dataType: 'string', kind: 'word', lang: 'en' },
       },
       count: 10,
     };
@@ -33,7 +33,7 @@ describe('String Field Generation', () => {
   it('should generate string with sentence type', async () => {
     const requestBody: MockRequest = {
       schema: {
-        description: { dataType: 'string', kind: 'sentence' },
+        description: { dataType: 'string', kind: 'sentence', lang: 'en' },
       },
       count: 10,
     };
@@ -49,15 +49,16 @@ describe('String Field Generation', () => {
 
     body.forEach((item: { description: string }) => {
       expect(typeof item.description).toBe('string');
-      expect(item.description.split(' ').length).toBeGreaterThanOrEqual(5);
-      expect(item.description.split(' ').length).toBeLessThanOrEqual(15);
+      expect(item.description.length).toBeGreaterThan(0);
+      // Sentences are pre-written and can vary in length
+      expect(item.description).toMatch(/[.!?]$/);
     });
   });
 
   it('should generate string with paragraph type', async () => {
     const requestBody: MockRequest = {
       schema: {
-        content: { dataType: 'string', kind: 'paragraph' },
+        content: { dataType: 'string', kind: 'paragraph', lang: 'en' },
       },
       count: 5,
     };
@@ -80,7 +81,13 @@ describe('String Field Generation', () => {
   it('should respect custom length for word type', async () => {
     const requestBody: MockRequest = {
       schema: {
-        shortTag: { dataType: 'string', kind: 'word', length: 5 },
+        shortTag: {
+          dataType: 'string',
+          kind: 'word',
+          min: 5,
+          max: 5,
+          lang: 'en',
+        },
       },
       count: 10,
     };
@@ -95,9 +102,9 @@ describe('String Field Generation', () => {
     const body = await response.json();
 
     body.forEach((item: { shortTag: string }) => {
-      // Word length can vary due to random word selection, just check it's reasonable
-      expect(item.shortTag.length).toBeGreaterThan(0);
-      expect(item.shortTag.length).toBeLessThan(30);
+      // min: 5, max: 5 means 5 words
+      const wordCount = item.shortTag.split(' ').length;
+      expect(wordCount).toBe(5);
     });
   });
 
@@ -128,5 +135,35 @@ describe('String Field Generation', () => {
     ).length;
 
     expect(nullCount).toBeGreaterThan(0);
+  });
+
+  it('should support all languages (tr, en, zh, ru)', async () => {
+    const languages = ['tr', 'en', 'zh', 'ru'] as const;
+
+    for (const lang of languages) {
+      const requestBody: MockRequest = {
+        schema: {
+          sentence: { dataType: 'string', kind: 'sentence', lang },
+          word: { dataType: 'string', kind: 'word', lang },
+        },
+        count: 5,
+      };
+
+      const response = await app.request('/mock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      body.forEach((item: { sentence: string; word: string }) => {
+        expect(typeof item.sentence).toBe('string');
+        expect(item.sentence.length).toBeGreaterThan(0);
+        expect(typeof item.word).toBe('string');
+        expect(item.word.length).toBeGreaterThan(0);
+      });
+    }
   });
 });

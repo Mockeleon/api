@@ -1,21 +1,20 @@
-import type { CountryField } from '../../schema/fields/country-field.js';
+import type { CountryFieldConfig } from '../../schema/fields/country-field.js';
+import type { FieldConfig } from '../../schema/index.js';
 
 import { cities } from './data/location/cities.js';
 import { countries, countryByCode } from './data/location/countries.js';
-import type { GeneratorContext, IDataGenerator } from './generator.interface.js';
+import type {
+  GeneratorContext,
+  IDataGenerator,
+} from './generator.interface.js';
 
 /** Generates country names with continent filtering and city-based lookup */
-export class CountryGenerator implements IDataGenerator<CountryField> {
-  canHandle(field: unknown): field is CountryField {
-    return (
-      typeof field === 'object' &&
-      field !== null &&
-      'dataType' in field &&
-      field.dataType === 'country'
-    );
+export class CountryGenerator implements IDataGenerator<CountryFieldConfig> {
+  canHandle(config: FieldConfig): config is CountryFieldConfig {
+    return config.dataType === 'country';
   }
 
-  generate(field: CountryField, context?: GeneratorContext): string {
+  generate(field: CountryFieldConfig, context?: GeneratorContext): string {
     // If basedOn is specified, find country from city
     if (
       field.basedOn &&

@@ -11,17 +11,14 @@ export async function metricsMiddleware(c: Context, next: Next) {
   const path = c.req.path;
   const method = c.req.method;
 
-  // Increment active requests
   metricsService.activeRequests.inc();
 
   try {
     await next();
   } finally {
-    // Decrement active requests
     metricsService.activeRequests.dec();
 
-    // Record request duration
-    const duration = (Date.now() - start) / 1000; // Convert to seconds
+    const duration = (Date.now() - start) / 1000;
     const statusCode = c.res.status.toString();
 
     metricsService.requestDuration.observe(
@@ -29,7 +26,6 @@ export async function metricsMiddleware(c: Context, next: Next) {
       duration
     );
 
-    // Increment HTTP requests counter
     metricsService.httpRequests.inc({
       method,
       route: path,

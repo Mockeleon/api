@@ -1,4 +1,5 @@
-import type { LocationField } from '../../schema/fields/location-field.js';
+import type { LocationFieldConfig } from '../../schema/fields/location-field.js';
+import type { FieldConfig } from '../../schema/index.js';
 
 import {
   cities,
@@ -9,17 +10,12 @@ import { countryByCode } from './data/location/countries.js';
 import type { IDataGenerator } from './generator.interface.js';
 
 /** Generates formatted location strings (City, Country) with filtering */
-export class LocationGenerator implements IDataGenerator<LocationField> {
-  canHandle(field: unknown): field is LocationField {
-    return (
-      typeof field === 'object' &&
-      field !== null &&
-      'dataType' in field &&
-      field.dataType === 'location'
-    );
+export class LocationGenerator implements IDataGenerator<LocationFieldConfig> {
+  canHandle(config: FieldConfig): config is LocationFieldConfig {
+    return config.dataType === 'location';
   }
 
-  generate(field: LocationField): string {
+  generate(field: LocationFieldConfig): string {
     let filteredCities = cities;
 
     if (field.continents && field.continents.length > 0) {

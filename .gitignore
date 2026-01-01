@@ -34,3 +34,6 @@ logs/
 
 # Coverage
 coverage/
+
+# Generated files
+public/schema.json

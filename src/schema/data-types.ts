@@ -64,7 +64,7 @@ export const DataTypeSchema = z.union([
 ]);
 export type DataType = z.infer<typeof DataTypeSchema>;
 
-export const LanguageCodeSchema = z.enum(['tr', 'en', 'any']);
+export const LanguageCodeSchema = z.enum(['tr', 'en', 'zh', 'ru', 'any']);
 export type LanguageCode = z.infer<typeof LanguageCodeSchema>;
 
 export const GenderSchema = z.enum(['male', 'female', 'any']);

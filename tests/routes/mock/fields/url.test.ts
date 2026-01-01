@@ -54,7 +54,7 @@ describe('URL Field Generation', () => {
   it('should generate URL based on name field', async () => {
     const requestBody: MockRequest = {
       schema: {
-        name: { dataType: 'name', format: 'full' },
+        name: { dataType: 'name', format: 'full', lang: 'en' },
         github: { dataType: 'url', platform: 'github', basedOn: 'name' },
       },
       count: 15,

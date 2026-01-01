@@ -1,73 +1,14 @@
 /**
- * @fileoverview Mockeleon Service - Core Data Generation Engine
+ * Mockeleon Service - Core data generation engine
  *
- * This service orchestrates the generation of mock data using the Strategy Pattern.
- * It maintains a registry of generators, validates schemas, and recursively processes
- * nested structures to produce realistic mock data.
+ * Orchestrates mock data generation using Strategy Pattern with 26+ generators.
+ * Validates schemas against limits and recursively processes nested structures.
  *
- * Architecture:
- * ┌───────────────────────────────────────────────────────┐
- * │                MockeleonService                          │
- * │  - Maintains generator registry                          │
- * │  - Validates schemas against limits                     │
- * │  - Recursively generates nested structures              │
- * │  - Tracks metrics                                       │
- * ├───────────────────────────────────────────────────────┤
- * │              Generator Registry                          │
- * │  - 26+ generators implementing IDataGenerator           │
- * │  - Dynamic dispatch via canHandle()                     │
- * │  - Object/Array generators recursively call service     │
- * └───────────────────────────────────────────────────────┘
- *
- * Key Features:
- *
- * 1. Strategy Pattern Implementation:
- *    - Each generator implements IDataGenerator interface
- *    - Generators are selected dynamically via canHandle() method
- *    - Easy to add new generators without modifying core logic
- *
- * 2. Recursive Schema Processing:
- *    - Handles nested objects (unlimited depth)
- *    - Handles arrays of any type (primitives, objects, arrays)
- *    - Maintains context for basedOn field dependencies
- *
- * 3. Production-Ready Limits:
- *    - MAX_SCHEMA_FIELDS (200): Prevents overly complex schemas
- *    - MAX_TOTAL_ITEMS (10,000): Prevents resource exhaustion
- *    - Validation before generation to fail fast
- *
- * 4. Context Management:
- *    - Passes previously generated fields to generators
- *    - Enables basedOn feature (e.g., email based on name)
- *    - Context is object-scoped, not global
- *
- * Security Considerations:
- * - Schema validation prevents DoS via complex schemas
- * - Limits prevent memory exhaustion
- * - No eval() or dynamic code execution
- * - Input validation via Zod schemas
- *
- * @example
- * ```typescript
- * const service = new MockeleonService();
- * const data = service.generate({
- *   name: { dataType: 'name' },
- *   email: { dataType: 'email', basedOn: 'name' },
- *   orders: {
- *     dataType: 'array',
- *     count: 3,
- *     item: {
- *       dataType: 'object',
- *       fields: {
- *         id: { dataType: 'uuid' },
- *         price: { dataType: 'price' }
- *       }
- *     }
- *   }
- * }, 10);
- * ```
- *
- * @module services/mockeleon
+ * Features:
+ * - Dynamic generator dispatch via canHandle()
+ * - Recursive object/array handling
+ * - Production limits (200 fields, 10k items)
+ * - Context management for field dependencies (basedOn)
  */
 
 import type { FieldConfig, Schema } from '../schema/index.js';
@@ -182,83 +123,21 @@ export class MockeleonService {
     ];
   }
 
-  /**
-   * Generate mock data from schema definition
-   *
-   * This is the main entry point for data generation. It validates the schema
-   * against resource limits, generates the requested number of records, and
-   * tracks metrics.
-   *
-   * Process:
-   * 1. Validate schema against limits (fail-fast if invalid)
-   * 2. Generate each record independently
-   * 3. Track metrics for monitoring
-   * 4. Return array of generated records
-   *
-   * Why validate before generation?
-   * - Prevents wasting resources on invalid schemas
-   * - Provides clear error messages upfront
-   * - Fails fast instead of timing out
-   *
-   * Why generate records independently?
-   * - Each record should be unique
-   * - No dependencies between records
-   * - Could be parallelized in future (if needed)
-   *
-   * @param schema - Schema definition (validated by Zod before reaching here)
-   * @param count - Number of records to generate (default: 1)
-   * @returns Array of generated records (each is an object matching schema)
-   * @throws Error if schema exceeds limits (MAX_SCHEMA_FIELDS or MAX_TOTAL_ITEMS)
-   *
-   * @example
-   * ```typescript
-   * // Simple schema
-   * generate({ name: { dataType: 'name' } }, 10)
-   * // Returns: [{ name: 'John Doe' }, { name: 'Jane Smith' }, ...]
-   *
-   * // Complex nested schema
-   * generate({
-   *   user: {
-   *     dataType: 'object',
-   *     fields: {
-   *       name: { dataType: 'name' },
-   *       contacts: {
-   *         dataType: 'array',
-   *         count: 3,
-   *         item: { dataType: 'email' }
-   *       }
-   *     }
-   *   }
-   * }, 5)
-   * ```
-   */
   generate(schema: Schema, count: number = 1): Array<Record<string, unknown>> {
-    // Validate schema against generation limits before processing
-    // This prevents DoS attacks via complex schemas and ensures
-    // we fail fast with clear error messages
     this.validateSchemaLimits(schema, count);
 
     const results: Array<Record<string, unknown>> = [];
 
-    // Generate each record independently
-    // Records don't depend on each other, ensuring each is unique
     for (let i = 0; i < count; i++) {
       results.push(this.generateSingle(schema));
     }
 
-    // Track total records generated in metrics for monitoring
-    // This helps identify usage patterns and performance issues
     metricsService.recordsGenerated.inc(count);
 
     return results;
   }
 
-  /**
-   * Validates schema against generation limits
-   * @throws Error if schema exceeds limits
-   */
   private validateSchemaLimits(schema: Schema, requestCount: number = 1): void {
-    // Check total field count
     const totalFields = this.calculateTotalFields(schema);
     if (totalFields > MAX_SCHEMA_FIELDS) {
       throw new Error(
@@ -266,7 +145,6 @@ export class MockeleonService {
       );
     }
 
-    // Check total items to be generated
     const itemsPerRequest = this.calculateTotalItems(schema);
     const totalItemsToGenerate = itemsPerRequest * requestCount;
 
@@ -277,20 +155,15 @@ export class MockeleonService {
     }
   }
 
-  /**
-   * Calculates the total number of fields in a schema (including nested fields)
-   */
   private calculateTotalFields(schema: Schema): number {
     let totalFields = 0;
 
     for (const fieldConfig of Object.values(schema)) {
-      totalFields++; // Count this field
+      totalFields++;
 
       if (fieldConfig.dataType === 'object' && 'fields' in fieldConfig) {
-        // Recursively count fields in nested object
         totalFields += this.calculateTotalFields(fieldConfig.fields);
       } else if (fieldConfig.dataType === 'array' && 'item' in fieldConfig) {
-        // Recursively count fields in array item schema
         totalFields += this.calculateFieldsInItem(
           fieldConfig.item as FieldConfig
         );
@@ -300,9 +173,6 @@ export class MockeleonService {
     return totalFields;
   }
 
-  /**
-   * Helper to count fields in an array item (which can be any FieldConfig)
-   */
   private calculateFieldsInItem(item: FieldConfig): number {
     if (item.dataType === 'object' && 'fields' in item) {
       return 1 + this.calculateTotalFields(item.fields);
@@ -310,13 +180,9 @@ export class MockeleonService {
     if (item.dataType === 'array' && 'item' in item) {
       return 1 + this.calculateFieldsInItem(item.item as FieldConfig);
     }
-    return 1; // Primitive field
+    return 1;
   }
 
-  /**
-   * Calculates the total number of items that will be generated for a schema
-   * This includes array counts and nested structures
-   */
   private calculateTotalItems(schema: Schema): number {
     let totalItems = 0;
 
@@ -330,7 +196,7 @@ export class MockeleonService {
       } else if (fieldConfig.dataType === 'object' && 'fields' in fieldConfig) {
         totalItems += this.calculateTotalItems(fieldConfig.fields);
       } else {
-        totalItems += 1; // Primitive field
+        totalItems += 1;
       }
     }
 
@@ -348,12 +214,9 @@ export class MockeleonService {
       const arrayCount = item.count || DEFAULT_ARRAY_COUNT;
       return arrayCount * this.calculateItemsInField(item.item as FieldConfig);
     }
-    return 1; // Primitive field
+    return 1;
   }
 
-  /**
-   * Generate a single data object from schema
-   */
   private generateSingle(schema: Schema): Record<string, unknown> {
     const result: Record<string, unknown> = {};
 
@@ -364,21 +227,14 @@ export class MockeleonService {
     return result;
   }
 
-  /**
-   * Generate value for a single field
-   * Handles nested schemas recursively
-   * @param context Previously generated fields in the current object
-   */
   private generateField(
     fieldConfig: FieldConfig | Schema,
     context: Record<string, unknown> = {}
   ): unknown {
-    // Check if it's a nested schema (plain object without dataType)
     if (this.isNestedSchema(fieldConfig)) {
       return this.generateSingle(fieldConfig as Schema);
     }
 
-    // It's a field config, find appropriate generator
     const generator = this.findGenerator(fieldConfig as FieldConfig);
 
     if (!generator) {
@@ -390,34 +246,22 @@ export class MockeleonService {
     return generator.generate(fieldConfig as FieldConfig, context);
   }
 
-  /**
-   * Check if config is a nested schema or a field config
-   */
   private isNestedSchema(config: unknown): boolean {
     if (!config || typeof config !== 'object') {
       return false;
     }
 
-    // If it has 'dataType' property, it's a field config
     if ('dataType' in config) {
       return false;
     }
 
-    // Otherwise, it's a nested schema
     return true;
   }
 
-  /**
-   * Find appropriate generator for field config
-   */
   private findGenerator(config: FieldConfig): IDataGenerator | undefined {
     return this.generators.find((generator) => generator.canHandle(config));
   }
 
-  /**
-   * Add a custom generator at runtime
-   * Useful for extending with new data types
-   */
   registerGenerator(generator: IDataGenerator): void {
     this.generators.push(generator);
   }

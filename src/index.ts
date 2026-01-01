@@ -1,37 +1,19 @@
 /**
- * @fileoverview Main Application Entry Point
+ * Main Application Entry Point
  *
- * This file orchestrates the entire application lifecycle:
- * 1. Creates and configures the Hono application with OpenAPI support
- * 2. Registers middlewares in a specific order (critical for proper error handling)
- * 3. Sets up routes with dependency injection
- * 4. Starts the HTTP server on configured port
- * 5. Handles graceful shutdown on SIGTERM/SIGINT signals
+ * Features:
+ * - OpenAPI/Swagger documentation
+ * - Rate limiting and metrics tracking
+ * - Graceful shutdown handling
+ * - CORS and error handling
  *
- * Middleware Order (CRITICAL - DO NOT CHANGE):
- * ┌─────────────────────────────────────────┐
- * │ 1. errorHandler (wraps all middlewares)│ ← Must be first to catch all errors
- * │ 2. requestId (generates unique ID)      │ ← For request tracking and logging
- * │ 3. metricsMiddleware (tracks metrics)   │ ← Record request metrics
- * │ 4. cors (handles CORS headers)          │ ← Before rate limiting for preflight
- * │ 5. rateLimiter (enforces rate limits)   │ ← Reject excessive requests early
- * │ 6. requestLogger (logs requests)        │ ← Log after rate limit decisions
- * │ 7. Routes (handle business logic)       │ ← Application endpoints
- * └─────────────────────────────────────────┘
- *
- * Why this order matters:
- * - errorHandler must wrap everything to catch all errors
- * - requestId must run early for correlation across logs
- * - rateLimiter runs before logger to avoid logging rejected requests
- * - CORS runs before rate limiter to handle preflight requests
- *
- * Graceful Shutdown:
- * - Listens for SIGTERM (Docker/Kubernetes stop signal)
- * - Listens for SIGINT (Ctrl+C during development)
- * - Closes server gracefully (waits for active connections)
- * - Prevents abrupt connection drops during deployments
- *
- * @module
+ * Middleware order (critical):
+ * 1. errorHandler - catches all errors
+ * 2. requestId - unique request tracking
+ * 3. metricsMiddleware - request metrics
+ * 4. cors - CORS headers
+ * 5. rateLimiter - rate limiting
+ * 6. requestLogger - request logging
  */
 
 import { serve } from '@hono/node-server';
@@ -49,25 +31,14 @@ import { requestLogger } from './middlewares/request-logger.js';
 import { registerHealthRoutes } from './routes/health/health.route.js';
 import { registerMetricsRoutes } from './routes/metrics/metrics.route.js';
 import { registerMockRoutes } from './routes/mock/mock.route.js';
-import { schemaRouter } from './routes/schema/index.js';
+import { registerSchemaRoutes } from './routes/schema/schema.route.js';
 import { MockeleonService } from './services/mockeleon.service.js';
 
-/**
- * Create and configure the Hono application
- *
- * This function is separated from server startup for testability.
- * Tests can create an app instance without starting the HTTP server.
- *
- * @returns Configured OpenAPIHono application instance
- */
 export function createApp(): OpenAPIHono {
-  // Create Hono app with OpenAPI support
   const app = new OpenAPIHono();
 
-  // Initialize rate limiter (100 requests per minute per IP)
   const rateLimiter = new RateLimiter(60000, 100);
 
-  // Apply middlewares (order matters: errorHandler wraps everything)
   app.use('*', errorHandler);
   app.use('*', requestId);
   app.use('*', metricsMiddleware);
@@ -88,9 +59,6 @@ export function createApp(): OpenAPIHono {
   app.use('*', rateLimiter.middleware());
   app.use('*', requestLogger);
 
-  // OpenAPI documentation configuration
-  // Note: In production, Nginx already adds /api prefix before forwarding
-  // So the server URL should just be the domain without /api
   app.doc('/openapi.json', {
     openapi: '3.1.0',
     info: {
@@ -110,16 +78,13 @@ export function createApp(): OpenAPIHono {
     ],
   });
 
-  // Initialize services
   const mockeleonService = new MockeleonService();
 
-  // Register routes with dependency injection
   registerHealthRoutes(app);
   registerMockRoutes(app, mockeleonService);
   registerMetricsRoutes(app);
-  app.route('/', schemaRouter);
+  registerSchemaRoutes(app);
 
-  // Swagger UI for documentation
   app.get(
     '/docs',
     swaggerUI({
@@ -133,10 +98,8 @@ export function createApp(): OpenAPIHono {
   return app;
 }
 
-// Create app instance
 const app = createApp();
 
-// Start server
 const server = serve(
   {
     fetch: app.fetch,
@@ -153,7 +116,6 @@ const server = serve(
   }
 );
 
-// Graceful shutdown handlers
 async function gracefulShutdown(signal: string): Promise<void> {
   log.info(`${signal} signal received: starting graceful shutdown`);
 

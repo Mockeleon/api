@@ -1,5 +1,7 @@
 import type { GeneratorContext } from '../generator.interface.js';
 
+import { transliterate } from './text-normalizer.js';
+
 /**
  * Result of parsing a name value
  */
@@ -35,8 +37,8 @@ export function parseNameFromContext(
  * Handles Turkish characters and special characters
  */
 export function parseNameValue(value: string): ParsedName | null {
-  // Clean and split the name, converting Turkish characters to ASCII
-  const cleanValue = normalizeToAscii(value.trim().toLowerCase()).replace(
+  // Clean and split the name, converting non-Latin characters to ASCII
+  const cleanValue = transliterate(value.trim().toLowerCase()).replace(
     /[^a-z\s]/gi,
     ''
   );
@@ -66,26 +68,4 @@ export function parseNameValue(value: string): ParsedName | null {
     lastName,
     fullName: `${firstName} ${lastName}`,
   };
-}
-
-/**
- * Normalize Turkish and special characters to ASCII equivalents
- */
-function normalizeToAscii(text: string): string {
-  const charMap: Record<string, string> = {
-    ç: 'c',
-    ğ: 'g',
-    ı: 'i',
-    ö: 'o',
-    ş: 's',
-    ü: 'u',
-    Ç: 'c',
-    Ğ: 'g',
-    İ: 'i',
-    Ö: 'o',
-    Ş: 's',
-    Ü: 'u',
-  };
-
-  return text.replace(/[çğıöşüÇĞİÖŞÜ]/g, (char) => charMap[char] ?? char);
 }

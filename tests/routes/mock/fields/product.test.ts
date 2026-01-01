@@ -190,4 +190,38 @@ describe('Product Field Generation', () => {
       });
     }
   });
+
+  it('should support all languages (tr, en, zh, ru)', async () => {
+    const languages = ['tr', 'en', 'zh', 'ru'] as const;
+
+    for (const lang of languages) {
+      const requestBody: MockRequest = {
+        schema: {
+          product: { dataType: 'product', lang },
+          electronics: {
+            dataType: 'product',
+            categories: ['electronics'],
+            lang,
+          },
+        },
+        count: 5,
+      };
+
+      const response = await app.request('/mock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      body.forEach((item: { product: string; electronics: string }) => {
+        expect(typeof item.product).toBe('string');
+        expect(item.product.length).toBeGreaterThan(0);
+        expect(typeof item.electronics).toBe('string');
+        expect(item.electronics.length).toBeGreaterThan(0);
+      });
+    }
+  });
 });
